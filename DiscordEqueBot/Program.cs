@@ -1,50 +1,31 @@
 ﻿using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
+using DiscordEqueBot.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-public class Program
+var configDiscord = new DiscordSocketConfig
 {
-    private static DiscordSocketClient _client;
+    AlwaysDownloadUsers = true,
+    GatewayIntents = GatewayIntents.MessageContent | GatewayIntents.GuildMembers
+};
 
-
-    private static Task Log(LogMessage msg)
+using IHost host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration(config =>
     {
-        Console.WriteLine(msg.ToString());
-        return Task.CompletedTask;
-    }
-
-    public static async Task Main()
+        config.SetBasePath(Directory.GetCurrentDirectory());
+        config.AddEnvironmentVariables();
+        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+    })
+    .ConfigureServices(services =>
     {
-        var config = new DiscordSocketConfig
-        {
-            GatewayIntents = GatewayIntents.All
-        };
-        _client = new DiscordSocketClient(config);
+        services.AddSingleton(new DiscordSocketClient(configDiscord)); // Add the discord client to services
+        services.AddSingleton<InteractionService>(); // Add the interaction service to services
+        services.AddHostedService<InteractionHandlingService>(); // Add the slash command handler
+        services.AddHostedService<DiscordStartupService>(); // Add the discord startup service
+    })
+    .Build();
 
-        _client.Log += Log;
-        _client.Ready += Ready;
-        _client.MessageUpdated += MessageUpdated;
-
-
-        var token = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
-
-        await _client.LoginAsync(TokenType.Bot, token);
-        await _client.StartAsync();
-
-        // Block this task until the program is closed.
-        await Task.Delay(-1);
-    }
-
-    private static Task Ready()
-    {
-        Console.WriteLine($"Connected as -> [{_client.CurrentUser.Username}]");
-        return Task.CompletedTask;
-    }
-
-    private static async Task MessageUpdated(Cacheable<IMessage, ulong> before, SocketMessage after,
-        ISocketMessageChannel channel)
-    {
-        // If the message was not in the cache, downloading it will result in getting a copy of `after`.
-        var message = await before.GetOrDownloadAsync();
-        Console.WriteLine($"{message} -> {after.Content}");
-    }
-}
+await host.RunAsync();
