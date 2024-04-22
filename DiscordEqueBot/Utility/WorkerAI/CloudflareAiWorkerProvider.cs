@@ -1,14 +1,16 @@
 using DiscordEqueBot.Utility.WorkerAI;
 using LangChain.Providers;
+using Microsoft.Extensions.Options;
 
 namespace DiscordEqueBot.Services;
 
 public class CloudflareAiWorkerProvider
     : Provider
 {
-    public CloudflareAiWorkerProvider(CloudflareConfiguration configuration) : base(CloudflareConfiguration.SectionName)
+    public CloudflareAiWorkerProvider(IOptions<CloudflareConfiguration> configuration) : base(CloudflareConfiguration
+        .SectionName)
     {
-        Configuration = configuration;
+        Configuration = configuration.Value;
         ChatSettings = new CloudflareChatSettings();
     }
 

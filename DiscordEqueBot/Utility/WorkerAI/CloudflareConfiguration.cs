@@ -12,6 +12,8 @@ public class CloudflareConfiguration
 
     public string? AIGatewayName { get; init; }
 
+    public string ChatModelId { get; init; }
+
 
     public string BaseUrlFormatted
     {

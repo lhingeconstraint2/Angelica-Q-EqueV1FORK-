@@ -5,7 +5,8 @@ using Newtonsoft.Json;
 
 namespace DiscordEqueBot.Utility.WorkerAI;
 
-public class WorkerAIChatModel : ChatModel, IPaidLargeLanguageModel, IChatModel<ChatRequest, ChatResponse, ChatSettings>
+public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
+    IChatModel<ChatRequest, ChatResponse, ChatSettings>
 
 {
     public const double PricePerNeuronUsageInUsd = 0.000011;
@@ -19,11 +20,12 @@ public class WorkerAIChatModel : ChatModel, IPaidLargeLanguageModel, IChatModel<
     /// baseNeuronUsage = 1 input token, 1 output token, 10000 requests
     /// neuronUsageInputToken = 2 input tokens, 1 output token, 10000 requests
     /// neuronUsageOutputToken = 1 input token, 2 output tokens, 10000 requests
-    public WorkerAIChatModel(
-        string id,
+    public CloudflareAiWorkerChatModel(
         CloudflareAiWorkerProvider cloudflareAiWorkerProvider,
-        uint contextTokenLimit,
-        uint sequenceTokenLimit,
+        string id,
+        // no use so far
+        uint contextTokenLimit = 0,
+        uint sequenceTokenLimit = 0,
         bool isMessage = false,
         uint baseNeuronUsage = 0,
         uint neuronUsageInputToken = 0,
