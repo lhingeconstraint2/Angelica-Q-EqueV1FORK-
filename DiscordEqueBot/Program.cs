@@ -1,10 +1,10 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using DiscordEqueBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NetCore.AutoRegisterDi;
 
 var configDiscord = new DiscordSocketConfig
 {
@@ -23,8 +23,11 @@ using IHost host = Host.CreateDefaultBuilder(args)
     {
         services.AddSingleton(new DiscordSocketClient(configDiscord)); // Add the discord client to services
         services.AddSingleton<InteractionService>(); // Add the interaction service to services
-        services.AddHostedService<InteractionHandlingService>(); // Add the slash command handler
-        services.AddHostedService<DiscordStartupService>(); // Add the discord startup service
+
+        // Register any class that ends with "Service" as a service
+        services.RegisterAssemblyPublicNonGenericClasses()
+            .Where(c => c.Name.EndsWith("Service"))
+            .AsPublicImplementedInterfaces();
     })
     .Build();
 
