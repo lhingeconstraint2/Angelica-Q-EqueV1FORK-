@@ -67,6 +67,8 @@ public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
         {
             MaxTokens = cloudflareChatSettings.MaxTokens,
             Stream = false,
+            Lora = cloudflareChatSettings.LoraId,
+            Raw = cloudflareChatSettings.LoraId == null && cloudflareChatSettings.Raw,
             Messages = chatRequest.Messages.Select<LangChain.Providers.Message, Message>(x => x).ToArray()
         };
 

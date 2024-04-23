@@ -14,6 +14,9 @@ public partial class CloudflareAiWorkerChatInput
     [JsonProperty("raw", NullValueHandling = NullValueHandling.Ignore)]
     public bool? Raw { get; set; }
 
+    [JsonProperty("lora", NullValueHandling = NullValueHandling.Ignore)]
+    public string? Lora { get; set; }
+
     [JsonProperty("stream", NullValueHandling = NullValueHandling.Ignore)]
     public bool? Stream { get; set; }
 
