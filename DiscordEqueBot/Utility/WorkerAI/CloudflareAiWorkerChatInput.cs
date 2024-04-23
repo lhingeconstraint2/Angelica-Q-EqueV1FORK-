@@ -9,7 +9,7 @@ public partial class CloudflareAiWorkerChatInput
     public long? MaxTokens { get; set; } = 100;
 
     [JsonProperty("prompt", NullValueHandling = NullValueHandling.Ignore)]
-    public string Prompt { get; set; }
+    public string? Prompt { get; set; }
 
     [JsonProperty("raw", NullValueHandling = NullValueHandling.Ignore)]
     public bool? Raw { get; set; }
@@ -35,10 +35,24 @@ public partial class Message
 
     public static implicit operator Message(LangChain.Providers.Message message)
     {
+        var role = "user";
+        switch (message.Role)
+        {
+            case MessageRole.Ai:
+                role = "assistant";
+                break;
+            case MessageRole.System:
+                role = "system";
+                break;
+            default:
+                role = "user";
+                break;
+        }
+
         return new Message
         {
             Content = message.Content,
-            Role = message.Role.ToString()
+            Role = role
         };
     }
 }

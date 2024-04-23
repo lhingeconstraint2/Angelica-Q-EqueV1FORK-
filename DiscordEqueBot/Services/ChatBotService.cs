@@ -1,10 +1,12 @@
 using System.Text;
 using Discord;
 using Discord.WebSocket;
+using DiscordEqueBot.Utility;
 using LangChain.Providers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DiscordEqueBot.Services;
 
@@ -15,9 +17,11 @@ public class ChatBotService : IHostedService
     private DiscordSocketClient _discord;
     private IEmbeddingModel _embeddingModel;
     private ILogger<ChatBotService> _logger;
+    private IOptions<EqueConfiguration> _options;
 
     public ChatBotService(ChatModel chatModel, ILogger<ChatBotService> logger, IEmbeddingModel embeddingModel,
         DiscordSocketClient discord,
+        IOptions<EqueConfiguration> options,
         IConfiguration config)
     {
         _chatModel = chatModel;
@@ -25,6 +29,7 @@ public class ChatBotService : IHostedService
         _discord = discord;
         _embeddingModel = embeddingModel;
         _config = config;
+        _options = options;
         chatModel.PromptSent += (o, s) => _logger.LogInformation("Prompt: {Prompt}", s);
         chatModel.CompletedResponseGenerated += (o, s) => _logger.LogInformation("Response: {Response}", s);
     }
@@ -44,47 +49,69 @@ public class ChatBotService : IHostedService
 
     private Task OnMessageReceived(SocketMessage message)
     {
-        _ = Task.Run(async () => { await _OnMessageReceived(message); });
+        _ = Task.Run(async () =>
+        {
+            IDisposable? disposable = null;
+            try
+            {
+                if (message.Author.IsBot)
+                    return;
+                // check if mentioned me or reply to my message
+                IMessage? messageReference = null;
+                if (message.Reference?.MessageId.IsSpecified == true)
+                {
+                    messageReference = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
+                }
+
+                bool isMentionedMe =
+                    message.MentionedUsers.FirstOrDefault(u => u.Id == _discord.CurrentUser.Id) != null;
+                bool isReplyToMe = messageReference?.Author.Id == _discord.CurrentUser.Id;
+
+                if (!isMentionedMe && !isReplyToMe)
+                    return;
+
+                disposable = message.Channel.EnterTypingState();
+                await _OnMessageReceived(message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while processing message");
+            }
+            finally
+            {
+                disposable?.Dispose();
+            }
+        });
         return Task.CompletedTask;
     }
 
     private async Task _OnMessageReceived(SocketMessage message)
     {
-        if (message.Author.IsBot)
-            return;
-        // check if mentioned me or reply to my message
-        IMessage? messageReference = null;
-        if (message.Reference?.MessageId.IsSpecified == true)
-        {
-            messageReference = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
-        }
-
-        if (!message.Content.Contains(_discord.CurrentUser.Mention) &&
-            messageReference?.Author.Id != _discord.CurrentUser.Id)
-            return;
-
         var discordChat = new DiscordChat(_discord);
         discordChat.AddMessage(message);
         await discordChat.ExploreMessageReference(message.Reference);
         await discordChat.ExploreMessageHistory(message);
 
 
+        var aiName = _discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator;
+        var sampleConversation = _options.Value.Template;
+        sampleConversation = sampleConversation.Replace(_options.Value.TemplateCharName, aiName);
+
         var chatRequest = discordChat.ToChatRequest([
-            new($"Your name is {_discord.CurrentUser.Username}#{_discord.CurrentUser.Discriminator}.",
-                MessageRole.System)
+            new(sampleConversation, MessageRole.System),
+            new Message("Keep OOC out of the chat, reply up to 2 sentences or 60 words.", MessageRole.System)
         ]);
 
-        var disposable = message.Channel.EnterTypingState();
         var chatResponse = await _chatModel.GenerateAsync(chatRequest);
         var response = chatResponse.LastMessageContent;
+        response = response.Replace(aiName + ": ", "");
+        response = response.Replace(_discord.CurrentUser.Username + ": ", "");
         if (string.IsNullOrWhiteSpace(response))
         {
-            disposable.Dispose();
             return;
         }
 
         await message.Channel.SendMessageAsync(response);
-        disposable.Dispose();
     }
 
 

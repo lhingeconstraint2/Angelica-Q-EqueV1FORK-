@@ -65,10 +65,8 @@ public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
 
         var input = new CloudflareAiWorkerChatInput
         {
-            Prompt = cloudflareChatSettings.Prompt,
             MaxTokens = cloudflareChatSettings.MaxTokens,
             Stream = false,
-            Raw = cloudflareChatSettings.Raw,
             Messages = chatRequest.Messages.Select<LangChain.Providers.Message, Message>(x => x).ToArray()
         };
 
