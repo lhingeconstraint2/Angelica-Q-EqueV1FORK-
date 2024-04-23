@@ -23,6 +23,7 @@ public class DiscordStartupService : IHostedService
         _discord.Log += msg => LogHelper.OnLogAsync(_logger, msg);
         if (string.IsNullOrEmpty(_config["DiscordToken"]))
             throw new InvalidOperationException("Discord token is not set in configuration.");
+        _discord.Ready += OnReady;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -35,5 +36,12 @@ public class DiscordStartupService : IHostedService
     {
         await _discord.LogoutAsync();
         await _discord.StopAsync();
+    }
+
+    private async Task OnReady()
+    {
+        _logger.LogInformation("Logged in as {Username}#{Discriminator}", _discord.CurrentUser.Username,
+            _discord.CurrentUser.Discriminator);
+        _logger.LogInformation("Connected to {GuildCount} guilds", _discord.Guilds.Count);
     }
 }

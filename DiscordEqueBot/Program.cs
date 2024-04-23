@@ -17,7 +17,15 @@ using NetCore.AutoRegisterDi;
 var configDiscord = new DiscordSocketConfig
 {
     AlwaysDownloadUsers = true,
-    GatewayIntents = GatewayIntents.MessageContent | GatewayIntents.GuildMembers
+    GatewayIntents = GatewayIntents.MessageContent
+                     | GatewayIntents.DirectMessages
+                     | GatewayIntents.DirectMessageReactions
+                     | GatewayIntents.DirectMessageTyping
+                     | GatewayIntents.GuildMembers
+                     | GatewayIntents.GuildMessages
+                     | GatewayIntents.Guilds
+                     | GatewayIntents.GuildMessageReactions
+                     | GatewayIntents.GuildMessageTyping
 };
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -78,6 +86,7 @@ builder.Services.AddSingleton<ChatModel, CloudflareAiWorkerChatModel>(provider =
 builder.Services.RegisterAssemblyPublicNonGenericClasses()
     .Where(c => c.Name.EndsWith("Service"))
     .AsPublicImplementedInterfaces();
+
 
 var host = builder.Build();
 

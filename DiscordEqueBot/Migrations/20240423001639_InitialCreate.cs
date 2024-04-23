@@ -17,9 +17,11 @@ namespace DiscordEqueBot.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    Snowflake = table.Column<string>(type: "TEXT", nullable: true),
                     Content = table.Column<string>(type: "TEXT", nullable: false),
                     Author = table.Column<string>(type: "TEXT", nullable: false),
                     AuthorId = table.Column<string>(type: "TEXT", nullable: false),
+                    IsAi = table.Column<bool>(type: "INTEGER", nullable: false),
                     Channel = table.Column<string>(type: "TEXT", nullable: false),
                     ChannelId = table.Column<string>(type: "TEXT", nullable: false),
                     Guild = table.Column<string>(type: "TEXT", nullable: true),
