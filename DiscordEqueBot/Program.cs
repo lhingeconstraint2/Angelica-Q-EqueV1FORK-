@@ -6,6 +6,7 @@ using DiscordEqueBot.Utility;
 using DiscordEqueBot.Utility.WorkerAI;
 using LangChain.Extensions.DependencyInjection;
 using LangChain.Providers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -53,6 +54,10 @@ if (!foundAppSetting)
 
 builder.Logging.AddConsole();
 
+builder.Services.AddDbContext<DatabaseContext>(options =>
+{
+    options.UseSqlite(builder.Configuration.GetConnectionString("Data Source=Database.db"));
+});
 builder.Services.AddSingleton(new DiscordSocketClient(configDiscord)); // Add the discord client to services
 builder.Services.AddSingleton<InteractionService>(); // Add the interaction service to services
 builder.Services.AddOpenAi();
