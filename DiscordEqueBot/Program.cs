@@ -73,6 +73,8 @@ builder.Services.AddOpenAi();
 builder.Services.Configure<CloudflareConfiguration>(
     builder.Configuration.GetSection(CloudflareConfiguration
         .SectionName)); // Add the CloudflareConfiguration to services
+builder.Services.Configure<EqueConfiguration>(
+    builder.Configuration.GetSection(EqueConfiguration.SectionName)); // Add the EqueConfiguration to services
 builder.Services.AddSingleton<CloudflareAiWorkerProvider>(); // Add the CloudflareAiWorkerProvider to services
 builder.Services.AddSingleton<IEmbeddingModel, EqueEmbeddingModel>(); // Add the EqueEmbeddingModel to services
 builder.Services.AddSingleton<ChatModel, CloudflareAiWorkerChatModel>(provider =>

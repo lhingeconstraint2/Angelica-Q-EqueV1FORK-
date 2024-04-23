@@ -5,6 +5,7 @@ using DiscordEqueBot.Utility;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DiscordEqueBot.Services;
 
@@ -25,17 +26,22 @@ public class ChatScraperService : IHostedService
     private readonly DatabaseContext _databaseContext;
     private readonly DiscordSocketClient _discord;
     private readonly ILogger<ChatScraperService> _logger;
+    private readonly IOptions<EqueConfiguration> _options;
 
     public ChatScraperService(ILogger<ChatScraperService> logger, DiscordSocketClient discord,
+        IOptions<EqueConfiguration> options,
         DatabaseContext databaseContext)
     {
         _logger = logger;
         _discord = discord;
+        _options = options;
         _databaseContext = databaseContext;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        if (!_options.Value.IsScrappingEnabled)
+            return Task.CompletedTask;
         _discord.MessageReceived += OnMessageReceived;
         _discord.MessageUpdated += OnMessageUpdated;
         _discord.ReactionAdded += OnReactionAdded;
@@ -47,6 +53,10 @@ public class ChatScraperService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _discord.MessageReceived -= OnMessageReceived;
+        _discord.MessageUpdated -= OnMessageUpdated;
+        _discord.ReactionAdded -= OnReactionAdded;
+        _discord.ReactionRemoved -= OnReactionRemoved;
+        _discord.ReactionsCleared -= OnReactionsCleared;
         return Task.CompletedTask;
     }
 
