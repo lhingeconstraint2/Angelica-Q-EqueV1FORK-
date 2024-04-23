@@ -84,6 +84,17 @@ public class ChatScraperService : IHostedService
 
         _databaseContext.Messages.Add(messageDb);
 
+        if (message.Reference.MessageId.IsSpecified)
+        {
+            var replyMessage = await _databaseContext.Messages
+                .Where(m => m.Snowflake == message.Reference.MessageId.ToString())
+                .FirstOrDefaultAsync();
+            if (replyMessage != null)
+            {
+                replyMessage.replies++;
+            }
+        }
+
         await _databaseContext.SaveChangesAsync();
     }
 

@@ -8,7 +8,8 @@ public class DatabaseContextFactory : IDesignTimeDbContextFactory<DatabaseContex
     public DatabaseContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
-        optionsBuilder.UseMySQL("server=localhost;database=discord_eque_bot;user=root;password=;");
+        var connectionString = "server=localhost;database=discord_eque_bot;user=root;password=;";
+        optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 
         return new DatabaseContext(optionsBuilder.Options);
     }
