@@ -94,7 +94,7 @@ public class ChatScraperService : IHostedService
 
         _databaseContext.Messages.Add(messageDb);
 
-        if (message.Reference.MessageId.IsSpecified)
+        if (message.Reference?.MessageId.IsSpecified == true)
         {
             var replyMessage = await _databaseContext.Messages
                 .Where(m => m.Snowflake == message.Reference.MessageId.ToString())

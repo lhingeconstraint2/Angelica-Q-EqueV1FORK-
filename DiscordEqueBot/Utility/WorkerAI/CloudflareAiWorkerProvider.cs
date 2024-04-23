@@ -18,10 +18,10 @@ public class CloudflareAiWorkerProvider
 
     public string GetEndpointChat(string model)
     {
-        var url = Configuration.BaseUrlFormatted + "/ai/run/" + Id;
+        var url = Configuration.BaseUrlFormatted + "/ai/run/" + model;
         if (Configuration.AIGatewayName != null)
         {
-            url = Configuration.GatewayUrlFormatted + Configuration.AIGatewayName + "/workers-ai/" + Id;
+            url = Configuration.GatewayUrlFormatted + Configuration.AIGatewayName + "/workers-ai/" + model;
         }
 
         return url;

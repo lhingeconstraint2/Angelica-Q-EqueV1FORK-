@@ -75,19 +75,24 @@ public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
         var json = JsonConvert.SerializeObject(input);
         request.Content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await client.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
         var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+
         var chatResponse = JsonConvert.DeserializeObject<CloudflareWorkerAiChatOutput>(responseString);
         if (chatResponse == null)
         {
             throw new Exception("Failed to deserialize response");
         }
 
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception("Failed to send request: " + string.Join(", ", chatResponse.Errors));
+        }
+
 
         return new ChatResponse
         {
             Messages = chatRequest.Messages
-                .Append(new LangChain.Providers.Message(chatResponse.Response, MessageRole.Ai)).ToArray(),
+                .Append(new LangChain.Providers.Message(chatResponse.Result.Response, MessageRole.Ai)).ToArray(),
             UsedSettings = cloudflareChatSettings
         };
     }
