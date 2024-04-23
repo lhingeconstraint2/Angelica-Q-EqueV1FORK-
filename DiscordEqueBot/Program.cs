@@ -64,7 +64,7 @@ builder.Logging.AddConsole();
 
 builder.Services.AddDbContext<DatabaseContext>(options =>
 {
-    options.UseSqlite(builder.Configuration.GetConnectionString("Data Source=Database.db"));
+    options.UseMySQL(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 builder.Services.AddSingleton(new DiscordSocketClient(configDiscord)); // Add the discord client to services
 builder.Services.AddSingleton<InteractionService>(); // Add the interaction service to services

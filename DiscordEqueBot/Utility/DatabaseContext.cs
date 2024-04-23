@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using DbContext = Microsoft.EntityFrameworkCore.DbContext;
 using Message = DiscordEqueBot.Models.Message;
 
 namespace DiscordEqueBot.Utility;
@@ -10,10 +11,5 @@ public class DatabaseContext : DbContext
         Database.Migrate();
     }
 
-    public DbSet<Message> Messages { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlite("Data Source=database.db");
-    }
+    public Microsoft.EntityFrameworkCore.DbSet<Message> Messages { get; set; }
 }

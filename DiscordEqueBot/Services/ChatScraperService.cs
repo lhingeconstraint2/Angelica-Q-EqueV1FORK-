@@ -52,6 +52,8 @@ public class ChatScraperService : IHostedService
 
     private async Task OnMessageReceived(SocketMessage message)
     {
+        if (message.CleanContent.Length == 0)
+            return;
         string? guildName = null;
         var messageDb = new Message
         {

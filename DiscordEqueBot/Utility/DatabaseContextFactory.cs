@@ -8,7 +8,7 @@ public class DatabaseContextFactory : IDesignTimeDbContextFactory<DatabaseContex
     public DatabaseContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
-        optionsBuilder.UseSqlite("Data Source=database.db");
+        optionsBuilder.UseMySQL("server=localhost;database=discord_eque_bot;user=root;password=;");
 
         return new DatabaseContext(optionsBuilder.Options);
     }
