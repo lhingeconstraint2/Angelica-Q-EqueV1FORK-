@@ -60,27 +60,35 @@ public class ChatScraperService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceived(SocketMessage message)
+    private async Task<Message> AddOrUpdateMessageToDB(IMessage message)
     {
-        if (message.CleanContent.Length == 0)
-            return;
-        string? guildName = null;
-        var messageDb = new Message
+        var messageDb = await _databaseContext.Messages.Where(m => m.Snowflake == message.Id.ToString())
+            .FirstOrDefaultAsync();
+        if (messageDb is null)
         {
-            Snowflake = message.Id.ToString(),
-            Author = message.Author.Username,
-            AuthorId = message.Author.Id.ToString(),
-            Content = message.CleanContent,
-            Channel = message.Channel.Name,
-            ChannelId = message.Channel.Id.ToString(),
-            ContextId = message.Channel.Id.ToString(),
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
+            messageDb = new Message
+            {
+                Snowflake = message.Id.ToString(),
+                Author = message.Author.Username,
+                AuthorId = message.Author.Id.ToString(),
+                Content = message.CleanContent,
+                Channel = message.Channel.Name,
+                ChannelId = message.Channel.Id.ToString(),
+                ContextId = message.Channel.Id.ToString(),
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+            _databaseContext.Messages.Add(messageDb);
+        }
+        else
+        {
+            messageDb.Content = message.CleanContent;
+            messageDb.UpdatedAt = DateTime.Now;
+        }
+
         if (message.Channel is SocketGuildChannel guildChannel)
         {
-            guildName = guildChannel.Guild.Name;
-            messageDb.Guild = guildName;
+            messageDb.Guild = guildChannel.Guild.Name;
             messageDb.GuildId = guildChannel.Guild.Id.ToString();
         }
 
@@ -89,23 +97,36 @@ public class ChatScraperService : IHostedService
             messageDb.IsAi = true;
         }
 
+        return messageDb;
+    }
+
+    private async Task OnMessageReceived(SocketMessage message)
+    {
+        if (message.CleanContent.Length == 0)
+            return;
+        string? guildName = null;
+
+        var messageDb = await AddOrUpdateMessageToDB(message);
+        guildName = messageDb.Guild;
         _logger.LogInformation("[{Timestamp:yyyy-MM-dd HH:mm:ss}] {GuildName} - {ChannelName} - {Username}: {Content}",
             DateTime.Now, guildName, message.Channel.Name, message.Author.Username, message.CleanContent);
 
-        _databaseContext.Messages.Add(messageDb);
 
         if (message.Reference?.MessageId.IsSpecified == true)
         {
+            messageDb.ReplyTo = message.Reference.MessageId.ToString();
+
             var replyMessage = await _databaseContext.Messages
-                .Where(m => m.Snowflake == message.Reference.MessageId.ToString())
-                .FirstOrDefaultAsync();
-            if (replyMessage != null)
-            {
-                replyMessage.replies++;
-            }
+                                   .Where(m => m.Snowflake == message.Reference.MessageId.ToString())
+                                   .FirstOrDefaultAsync() ??
+                               await AddOrUpdateMessageToDB(
+                                   await message.Channel.GetMessageAsync(message.Reference.MessageId.Value));
+
+            replyMessage.replies++;
         }
 
         await _databaseContext.SaveChangesAsync();
+        await RecalculateLikes(message);
     }
 
     private async Task OnMessageUpdated(Cacheable<IMessage, ulong> cacheable, SocketMessage message,
@@ -118,8 +139,8 @@ public class ChatScraperService : IHostedService
 
         messageDb.Content = message.CleanContent;
         messageDb.UpdatedAt = DateTime.Now;
-
         await _databaseContext.SaveChangesAsync();
+        await RecalculateLikes(message);
     }
 
 

@@ -12,4 +12,6 @@ public class EqueConfiguration
         "Your name is AIBOT. You are designed to complete the story, answer in one line.";
 
     public string TemplateCharName { get; set; } = "AIBOT";
+
+    public uint MaxResponseLength { get; set; } = 128;
 }

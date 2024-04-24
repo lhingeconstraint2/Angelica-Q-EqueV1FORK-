@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
 using DiscordEqueBot.Utility;
@@ -32,6 +33,7 @@ public class ChatBotService : IHostedService
         _embeddingModel = embeddingModel;
         _config = config;
         _options = options;
+        CloudflareChatSettings.MaxTokenDefault = _options.Value.MaxResponseLength;
         chatModel.PromptSent += (o, s) => _logger.LogInformation("Prompt: {Prompt}", s);
         chatModel.CompletedResponseGenerated += (o, s) => _logger.LogInformation("Response: {Response}", s);
     }
@@ -90,12 +92,20 @@ public class ChatBotService : IHostedService
     private async Task _OnMessageReceived(SocketMessage message)
     {
         var discordChat = new DiscordChat(_discord);
-        discordChat.AddMessage(message);
-        await discordChat.ExploreMessageReference(message.Reference);
-        await discordChat.ExploreMessageHistory(message);
+        await discordChat.AddMessage(message);
+
+        // Reference or History
+        if (message.Reference?.MessageId.IsSpecified == true)
+        {
+            await discordChat.ExploreMessageReference(message.Reference);
+        }
+        else
+        {
+            await discordChat.ExploreMessageHistory(message);
+        }
 
 
-        var aiName = _discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator;
+        var aiName = _discord.CurrentUser.Username;
         var sampleConversation = _options.Value.Template;
         sampleConversation = sampleConversation.Replace(_options.Value.TemplateCharName, aiName);
 
@@ -108,7 +118,10 @@ public class ChatBotService : IHostedService
         var chatResponse = await _chatModel.GenerateAsync(chatRequest);
         var response = chatResponse.LastMessageContent;
         response = response.Replace(aiName + ": ", "");
-        response = response.Replace(_discord.CurrentUser.Username + ": ", "");
+        response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ",
+            "");
+        // replace text that surrounded by * * or italic
+        response = Regex.Replace(response, @"\*.*?\*", "");
         if (string.IsNullOrWhiteSpace(response))
         {
             return;
@@ -134,10 +147,10 @@ public class ChatBotService : IHostedService
         public SortedDictionary<ulong, string> Messages { get; set; }
         public Dictionary<ulong, bool> MessageIsAi { get; set; }
 
-        public void AddMessage(IMessage message)
+        public async Task AddMessage(IMessage message)
         {
             if (message.CleanContent.Length == 0) return;
-            var content = GetAiFriendlyContent(message);
+            var content = await GetAiFriendlyContent(message);
             TokenCount += CountTokens(content);
             Messages.TryAdd(message.Id, content);
             MessageIsAi[message.Id] = message.Author.Id == _discord.CurrentUser.Id;
@@ -151,7 +164,7 @@ public class ChatBotService : IHostedService
             while (reference != null && TokenCount < maxToken)
             {
                 var message = await textChannel.GetMessageAsync(reference.MessageId.Value);
-                AddMessage(message);
+                await AddMessage(message);
                 reference = message.Reference;
             }
         }
@@ -163,7 +176,7 @@ public class ChatBotService : IHostedService
             {
                 foreach (var history in historyMessage)
                 {
-                    AddMessage(history);
+                    await AddMessage(history);
                     if (TokenCount >= maxToken)
                         break;
                 }
@@ -184,7 +197,7 @@ public class ChatBotService : IHostedService
             StringBuilder sb = new StringBuilder();
             foreach (var (key, value) in Messages)
             {
-                var escaped = value.Replace("\n", "\\n");
+                var escaped = value.Trim().Replace("\n", "\\n");
                 sb.AppendLine(escaped);
             }
 
@@ -196,10 +209,27 @@ public class ChatBotService : IHostedService
             };
         }
 
-        public static String GetAiFriendlyContent(IMessage message)
+
+        public static async Task<String> GetAiFriendlyContent(IMessage message)
         {
-            return $"{message.Author.Username}: {message.CleanContent.Replace("\n", "\\n")}";
+            StringBuilder sb = new StringBuilder();
+            if (message.Reference?.MessageId.IsSpecified == true)
+            {
+                var replyMessage = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
+                if (replyMessage is not null)
+                {
+                    var replyContent = replyMessage.CleanContent.Replace("\n", "\\n");
+                    if (!string.IsNullOrWhiteSpace(replyContent))
+                    {
+                        // sb.AppendLine($"> {replyMessage.Author.Username}: {replyContent}");
+                    }
+                }
+            }
+
+            sb.AppendLine($"{message.Author.Username}: {message.CleanContent.Replace("\n", "\\n")}");
+            return sb.ToString();
         }
+
 
         public static uint CountTokens(String message)
         {

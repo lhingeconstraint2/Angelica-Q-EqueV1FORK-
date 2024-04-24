@@ -4,7 +4,7 @@ namespace DiscordEqueBot.Utility.WorkerAI;
 
 public class CloudflareChatSettings : ChatSettings
 {
-    public static uint MaxTokenDefault { get; } = 256;
+    public static uint MaxTokenDefault { get; set; } = 256;
     public uint MaxTokens { get; init; } = MaxTokenDefault;
     public string Prompt { get; init; } = string.Empty;
 

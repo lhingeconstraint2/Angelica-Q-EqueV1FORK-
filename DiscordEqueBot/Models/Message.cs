@@ -30,6 +30,8 @@ public class Message
     public int Likes { get; set; } = 0;
     public int replies { get; set; } = 0;
 
+    public string? ReplyTo { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
