@@ -2,11 +2,13 @@ using System.Text;
 using Discord;
 using Discord.WebSocket;
 using DiscordEqueBot.Utility;
+using DiscordEqueBot.Utility.WorkerAI;
 using LangChain.Providers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Message = LangChain.Providers.Message;
 
 namespace DiscordEqueBot.Services;
 
@@ -97,9 +99,10 @@ public class ChatBotService : IHostedService
         var sampleConversation = _options.Value.Template;
         sampleConversation = sampleConversation.Replace(_options.Value.TemplateCharName, aiName);
 
+        uint maxWords = (uint) (CloudflareChatSettings.MaxTokenDefault * 0.8);
         var chatRequest = discordChat.ToChatRequest([
             new(sampleConversation, MessageRole.System),
-            new Message("Keep OOC out of the chat, reply up to 2 sentences or 60 words.", MessageRole.System)
+            new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System)
         ]);
 
         var chatResponse = await _chatModel.GenerateAsync(chatRequest);
