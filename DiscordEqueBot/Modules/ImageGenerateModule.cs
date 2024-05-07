@@ -24,10 +24,6 @@ public class ImageGenerateModule : InteractionModuleBase<SocketInteractionContex
             await image.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
             await FollowupWithFileAsync(memoryStream, "image.png");
-            await image.DisposeAsync();
-            // Try to write the image to a file
-            memoryStream.Position = 0;
-            await File.WriteAllBytesAsync("image.png", memoryStream.ToArray());
         }
         catch (Exception e)
         {
