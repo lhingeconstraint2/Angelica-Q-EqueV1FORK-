@@ -14,6 +14,8 @@ public class CloudflareConfiguration
 
     public string ChatModelId { get; init; }
 
+    public string Text2ImageModelId { get; init; } = "@cf/lykon/dreamshaper-8-lcm";
+
 
     public string BaseUrlFormatted
     {

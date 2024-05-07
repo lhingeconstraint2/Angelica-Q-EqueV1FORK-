@@ -85,7 +85,7 @@ builder.Services.AddSingleton<ChatModel, CloudflareAiWorkerChatModel>(provider =
     var cloudflareConfiguration = provider.GetRequiredService<IOptions<CloudflareConfiguration>>().Value;
     return new CloudflareAiWorkerChatModel(cloudflareAiWorkerProvider, cloudflareConfiguration.ChatModelId);
 }); // Add the CloudflareAiWorkerChatModel to services
-
+builder.Services.AddSingleton<IEqueText2Image, CloudflareAiWorkerText2Image>(); // Add the Text2Image
 
 // Register any class that ends with "Service" as a service
 builder.Services.RegisterAssemblyPublicNonGenericClasses()
