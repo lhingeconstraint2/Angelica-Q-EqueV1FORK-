@@ -127,7 +127,18 @@ public class ChatBotService : IHostedService
             return;
         }
 
-        await message.Channel.SendMessageAsync(response);
+        IUserMessage messageRespond;
+        if (message is SocketUserMessage userMessage)
+        {
+            messageRespond = await userMessage.ReplyAsync(response);
+        }
+        else
+        {
+            messageRespond = await message.Channel.SendMessageAsync(response);
+        }
+
+        await messageRespond.AddReactionAsync(new Emoji("👍"));
+        await messageRespond.AddReactionAsync(new Emoji("👎"));
     }
 
 
