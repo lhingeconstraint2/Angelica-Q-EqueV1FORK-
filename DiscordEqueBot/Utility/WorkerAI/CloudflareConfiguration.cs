@@ -14,7 +14,7 @@ public class CloudflareConfiguration
 
     public string ChatModelId { get; init; }
 
-    public string Text2ImageModelId { get; init; } = "@cf/stabilityai/stable-diffusion-xl-base-1.0";
+    public string Text2ImageModelId { get; init; } = "@cf/bytedance/stable-diffusion-xl-lightning";
 
 
     public string BaseUrlFormatted
