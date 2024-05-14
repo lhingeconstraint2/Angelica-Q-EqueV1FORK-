@@ -3,6 +3,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordEqueBot.Services;
 using DiscordEqueBot.Utility;
+using DiscordEqueBot.Utility.Cache;
 using DiscordEqueBot.Utility.WorkerAI;
 using LangChain.Extensions.DependencyInjection;
 using LangChain.Providers;
@@ -62,6 +63,14 @@ if (!foundAppSetting)
 
 builder.Logging.AddConsole();
 
+builder.Services.AddCacheStack((provider, stackBuilder) =>
+{
+    stackBuilder
+        .AddMemoryCacheLayer()
+        .WithCleanupFrequency(TimeSpan.FromMinutes(5));
+    stackBuilder.CacheLayers.Add(new DatabaseCacheLayer(provider.GetRequiredService<DatabaseContext>()));
+});
+
 builder.Services.AddDbContext<DatabaseContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -91,7 +100,7 @@ builder.Services.AddSingleton<IEqueText2Image, CloudflareAiWorkerText2Image>(); 
 builder.Services.RegisterAssemblyPublicNonGenericClasses()
     .Where(c => c.Name.EndsWith("Service"))
     .AsPublicImplementedInterfaces();
-
+builder.Services.AddSingleton<TextClassifierService>();
 
 var host = builder.Build();
 

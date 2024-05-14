@@ -1,19 +1,25 @@
 using System.Globalization;
 using System.Reflection;
+using CacheTower;
 using Discord;
 using Discord.Interactions;
 using DiscordEqueBot.Utility;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DiscordEqueBot.Modules;
 
 public class DevModule : InteractionModuleBase<SocketInteractionContext>
 {
+    private readonly ICacheStack _cacheStack;
+    private readonly ILogger<DevModule> _logger;
     private readonly EqueConfiguration _options;
 
-    public DevModule(IOptions<EqueConfiguration> options)
+    public DevModule(IOptions<EqueConfiguration> options, ICacheStack cacheStack, ILogger<DevModule> logger)
     {
         _options = options.Value;
+        _cacheStack = cacheStack;
+        _logger = logger;
     }
 
 
@@ -44,30 +50,53 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
             .AddField("Environment.ProcessId", Environment.ProcessId)
             .WithTimestamp(GetBuildDate())
             .Build();
-        await RespondAsync(embed: embed);
+        await FollowupAsync(embed: embed);
     }
 
-    [SlashCommand("dev", "Bot developer only commands.", runMode: RunMode.Async)]
+    private async Task CleanupCache()
+    {
+        await _cacheStack.CleanupAsync();
+        await FollowupAsync("Cache cleaned up.");
+    }
+
+    [SlashCommand("dev", "Bot developer only.", runMode: RunMode.Async)]
     public async Task Dev(string command)
     {
         if (!_options.DevIds.Contains(Context.User.Id + ""))
         {
-            await RespondAsync("You are not a developer.");
+            await RespondAsync(embed: new EmbedBuilder()
+                .WithTitle("Unauthorized")
+                .WithDescription("You are not authorized to use this command.")
+                .WithColor(Color.Red)
+                .Build());
             return;
         }
 
-        switch (command)
+        await DeferAsync();
+        try
         {
-            case "exit":
-                await RespondAsync("Exiting...");
-                Environment.Exit(0);
-                break;
-            case "info":
-                await Info();
-                break;
-            default:
-                await RespondAsync("Unknown command.");
-                break;
+            switch (command)
+            {
+                case "exit":
+                    await FollowupAsync("Exiting...");
+                    Environment.Exit(0);
+                    break;
+                case "info":
+                    await Info();
+                    break;
+                case "cleanup-cache":
+                    await CleanupCache();
+                    break;
+
+                default:
+                    await FollowupAsync("Unknown command.");
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occurred");
+            await FollowupAsync($"An error occurred: {e.Message}");
         }
     }
 }

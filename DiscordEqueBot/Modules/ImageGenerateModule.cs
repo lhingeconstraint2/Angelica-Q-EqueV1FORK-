@@ -1,41 +1,55 @@
+using System.Diagnostics;
+using Discord;
 using Discord.Interactions;
+using DiscordEqueBot.Services;
 using DiscordEqueBot.Utility;
+using Humanizer;
 using LangChain.Providers;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordEqueBot.Modules;
 
 public class ImageGenerateModule : InteractionModuleBase<SocketInteractionContext>
 {
-    public ImageGenerateModule(IEqueText2Image equeText2Image, ChatModel chatModel)
+    private readonly ILogger<ImageGenerateModule> _logger;
+
+    public ImageGenerateModule(IEqueText2Image equeText2Image, ChatModel chatModel,
+        TextClassifierService textClassifierService, ILogger<ImageGenerateModule> logger)
     {
         EqueText2Image = equeText2Image;
         ChatModel = chatModel;
+        TextClassifierService = textClassifierService;
+        _logger = logger;
     }
 
     private IEqueText2Image EqueText2Image { get; }
     private ChatModel ChatModel { get; }
+    private TextClassifierService TextClassifierService { get; }
 
-    private async Task<bool> IsSafe(string prompt)
-    {
-        var messages = new List<Message>();
-        messages.Add(new Message("Classify the following text as safe or racy, only respond with 'safe' or 'racy'.",
-            MessageRole.System));
-        messages.Add(new Message(prompt, MessageRole.Human));
-        var chatRequest = ChatRequest.ToChatRequest(messages.ToArray());
-        var response = await ChatModel.GenerateAsync(chatRequest);
-        return response.LastMessageContent.Contains("safe");
-    }
 
     [SlashCommand("ai-generate-image", "Generate an image.", runMode: RunMode.Async)]
     public async Task GenerateImage(string prompt)
     {
+        var start = Stopwatch.StartNew();
+
         try
         {
-            await DeferAsync();
             // is the prompt safe?
-            if (!await IsSafe(prompt))
+            TimeSpan timeDiff;
+
+            var deferAsyncTask = DeferAsync();
+
+            if (!await TextClassifierService.IsSafe(prompt))
             {
-                await RespondAsync("The prompt is not safe.");
+                timeDiff = start.Elapsed;
+                await deferAsyncTask;
+                await FollowupAsync(embed: new EmbedBuilder()
+                    .WithTitle("Racy Content Detected")
+                    .WithDescription(
+                        "The prompt you provided was classified as racy content. Please provide a different prompt.")
+                    .WithFooter($"Took {timeDiff.Humanize()}")
+                    .WithColor(Color.Red)
+                    .Build());
                 return;
             }
 
@@ -44,11 +58,17 @@ public class ImageGenerateModule : InteractionModuleBase<SocketInteractionContex
             var memoryStream = new MemoryStream();
             await image.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
-            await FollowupWithFileAsync(memoryStream, "image.png");
+            timeDiff = start.Elapsed;
+            await deferAsyncTask;
+            await FollowupWithFileAsync(memoryStream, "image.png", embed: new EmbedBuilder()
+                .WithFooter($"Took {timeDiff.Humanize()}")
+                .WithImageUrl("attachment://image.png")
+                .Build());
         }
         catch (Exception e)
         {
-            await RespondAsync($"An error occurred: {e.Message}");
+            _logger.LogError(e, "An error occurred");
+            await FollowupAsync($"An error occurred: {e.Message}");
         }
     }
 }

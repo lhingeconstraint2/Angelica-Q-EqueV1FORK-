@@ -1,3 +1,4 @@
+using DiscordEqueBot.Models;
 using Microsoft.EntityFrameworkCore;
 using DbContext = Microsoft.EntityFrameworkCore.DbContext;
 using Message = DiscordEqueBot.Models.Message;
@@ -12,4 +13,6 @@ public class DatabaseContext : DbContext
     }
 
     public Microsoft.EntityFrameworkCore.DbSet<Message> Messages { get; set; }
+    public Microsoft.EntityFrameworkCore.DbSet<TextClassificationLog> TextClassificationLogs { get; set; }
+    public Microsoft.EntityFrameworkCore.DbSet<KVCache> KVCache { get; set; }
 }
