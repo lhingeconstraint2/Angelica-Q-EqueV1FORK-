@@ -6,8 +6,6 @@ namespace DiscordEqueBot.Utility.WorkerAI;
 
 public class CloudflareAiWorkerText2Image : IEqueText2Image
 {
-    private readonly HttpClient client = new HttpClient();
-
     public CloudflareAiWorkerText2Image(IOptions<CloudflareConfiguration> configuration)
     {
         Configuration = configuration.Value;
@@ -27,7 +25,7 @@ public class CloudflareAiWorkerText2Image : IEqueText2Image
         request.Headers.Add("Authorization", $"Bearer {Configuration.APIKey}");
         request.Content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json");
 
-
+        HttpClient client = new HttpClient();
         var response = await client.SendAsync(request);
         var responseStream = await response.Content.ReadAsStreamAsync();
         return responseStream;

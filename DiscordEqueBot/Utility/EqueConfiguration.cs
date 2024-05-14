@@ -14,4 +14,6 @@ public class EqueConfiguration
     public string TemplateCharName { get; set; } = "AIBOT";
 
     public uint MaxResponseLength { get; set; } = 128;
+
+    public string[] DevIds { get; set; } = new string[0];
 }
