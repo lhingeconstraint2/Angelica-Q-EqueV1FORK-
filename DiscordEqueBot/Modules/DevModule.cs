@@ -23,25 +23,21 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
         const string BuildVersionMetadataPrefix = "+build";
 
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        if (attribute?.InformationalVersion != null)
+        if (attribute?.InformationalVersion == null) return default;
+        var value = attribute.InformationalVersion;
+        var index = value.IndexOf(BuildVersionMetadataPrefix);
+        if (index <= 0) return default;
+        value = value.Substring(index + BuildVersionMetadataPrefix.Length);
+        if (DateTime.TryParseExact(value, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                out var result))
         {
-            var value = attribute.InformationalVersion;
-            var index = value.IndexOf(BuildVersionMetadataPrefix);
-            if (index > 0)
-            {
-                value = value.Substring(index + BuildVersionMetadataPrefix.Length);
-                if (DateTime.TryParseExact(value, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                        out var result))
-                {
-                    return result;
-                }
-            }
+            return result;
         }
 
         return default;
     }
 
-    private async Task info()
+    private async Task Info()
     {
         var embed = new EmbedBuilder()
             .WithTitle("Developer Information")
@@ -63,11 +59,12 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
 
         switch (command)
         {
-            case "reload":
-                await RespondAsync("Reloading...");
+            case "exit":
+                await RespondAsync("Exiting...");
+                Environment.Exit(0);
                 break;
             case "info":
-                await info();
+                await Info();
                 break;
             default:
                 await RespondAsync("Unknown command.");
