@@ -9,7 +9,7 @@ namespace DiscordEqueBot.Modules;
 
 public class DevModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private EqueConfiguration _options;
+    private readonly EqueConfiguration _options;
 
     public DevModule(IOptions<EqueConfiguration> options)
     {
@@ -20,14 +20,13 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
     private static DateTime GetBuildDate()
     {
         var assembly = Assembly.GetExecutingAssembly();
-        const string BuildVersionMetadataPrefix = "+build";
-
+        const string buildVersionMetadataPrefix = "+build";
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         if (attribute?.InformationalVersion == null) return default;
         var value = attribute.InformationalVersion;
-        var index = value.IndexOf(BuildVersionMetadataPrefix);
+        var index = value.IndexOf(buildVersionMetadataPrefix, StringComparison.Ordinal);
         if (index <= 0) return default;
-        value = value.Substring(index + BuildVersionMetadataPrefix.Length);
+        value = value.Substring(index + buildVersionMetadataPrefix.Length);
         if (DateTime.TryParseExact(value, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
                 out var result))
         {
