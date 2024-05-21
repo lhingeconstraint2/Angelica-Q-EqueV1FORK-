@@ -77,6 +77,9 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
         {
             switch (command)
             {
+                case "pwd":
+                    await FollowupAsync(Environment.CurrentDirectory);
+                    break;
                 case "exit":
                     await FollowupAsync("Exiting...");
                     Environment.Exit(0);
