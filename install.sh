@@ -20,7 +20,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=$script_dir/DiscordEqueBot
-ExecStart=/usr/bin/dotnet run
+ExecStart=run.sh
 Restart=always
 RestartSec=5
 StartLimitInterval=0
