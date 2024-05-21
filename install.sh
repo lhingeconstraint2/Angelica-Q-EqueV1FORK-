@@ -19,8 +19,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=$script_dir/DiscordEqueBot
-ExecStart=run.sh
+WorkingDirectory=$script_dir
+ExecStart=/bin/bash $script_dir/run.sh
 Restart=always
 RestartSec=5
 StartLimitInterval=0
