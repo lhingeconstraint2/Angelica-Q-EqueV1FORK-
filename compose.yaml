@@ -1,0 +1,14 @@
+services:
+  discord-eque-bot:
+    build: DiscordEqueBot
+    container_name: discord-eque-bot
+    volumes:
+      - ./appsettings.json:/app/publish/appsettings.json
+  database:
+    image: mysql:5.7
+    container_name: database
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: equebot
+      MYSQL_USER: equebot
+      MYSQL_PASSWORD: equebot
