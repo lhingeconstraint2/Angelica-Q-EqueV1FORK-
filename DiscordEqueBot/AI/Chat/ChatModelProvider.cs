@@ -25,6 +25,11 @@ public class ChatModelProvider
 
     public ChatModel GetChatModel()
     {
+        if (this.ChatModel != null)
+        {
+            return this.ChatModel;
+        }
+
         var res = ChangeChatModel(null);
         if (res is null)
         {

@@ -120,7 +120,8 @@ public class ChatBotService : IHostedService
         }
 
         response = response.Replace(aiName + ": ", "");
-        //response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ", "");
+        response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ",
+            "");
         // replace text that surrounded by * * or italic
         //response = Regex.Replace(response, @"\*.*?\*", "");
         if (string.IsNullOrWhiteSpace(response)) return;
