@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
 using DiscordEqueBot.AI.Chat;
@@ -109,14 +108,21 @@ public class ChatBotService : IHostedService
             new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System)
         ]);
 
+
         var modelChat = _chatModelProvider.GetChatModel();
         var chatResponse = await modelChat.GenerateAsync(chatRequest);
         var response = chatResponse.LastMessageContent;
+        if (!response.StartsWith(aiName + ": "))
+        {
+            var split = response.Split(": ");
+            if (split.Length > 1)
+                response = split[1];
+        }
+
         response = response.Replace(aiName + ": ", "");
-        response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ",
-            "");
+        //response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ", "");
         // replace text that surrounded by * * or italic
-        response = Regex.Replace(response, @"\*.*?\*", "");
+        //response = Regex.Replace(response, @"\*.*?\*", "");
         if (string.IsNullOrWhiteSpace(response)) return;
 
         IUserMessage messageRespond;
@@ -125,8 +131,8 @@ public class ChatBotService : IHostedService
         else
             messageRespond = await message.Channel.SendMessageAsync(response);
 
-        await messageRespond.AddReactionAsync(new Emoji("👍"));
-        await messageRespond.AddReactionAsync(new Emoji("👎"));
+        //await messageRespond.AddReactionAsync(new Emoji("👍"));
+        //await messageRespond.AddReactionAsync(new Emoji("👎"));
     }
 
 
@@ -190,8 +196,9 @@ public class ChatBotService : IHostedService
 
         public bool DoesAiHavePersonality()
         {
+            var aiCount = MessageIsAi.Count(m => m.Value);
             var countAiMessageRatio = MessageIsAi.Count(m => m.Value) / (double) Messages.Count;
-            return countAiMessageRatio > 0.2;
+            return countAiMessageRatio > 0.2 && aiCount > 5;
         }
 
         // We need to impersonate the personality if the AI doesn't have one, vampire
@@ -228,6 +235,8 @@ public class ChatBotService : IHostedService
                 var escaped = value.Trim().Replace("\n", "\\n");
                 array.Add(new Message(escaped, MessageIsAi[key] ? MessageRole.Ai : MessageRole.Human));
             }
+
+            array.Add(new Message("Start message with '" + _discord.CurrentUser.Username + ": '", MessageRole.System));
 
             return new ChatRequest
             {
