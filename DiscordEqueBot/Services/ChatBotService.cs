@@ -105,7 +105,7 @@ public class ChatBotService : IHostedService
 
         var maxWords = (uint) (CloudflareChatSettings.MaxTokenDefault * 0.8);
         var chatRequest = discordChat.ToChatRequest([
-            new Message(sampleConversation, MessageRole.System),
+            //new Message(sampleConversation, MessageRole.System),
             new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System)
         ]);
 
@@ -140,11 +140,13 @@ public class ChatBotService : IHostedService
             TokenCount = 0;
             Messages = new SortedDictionary<ulong, string>();
             MessageIsAi = new Dictionary<ulong, bool>();
+            Users = new HashSet<string>();
         }
 
         protected uint TokenCount { get; set; }
         public SortedDictionary<ulong, string> Messages { get; set; }
         public Dictionary<ulong, bool> MessageIsAi { get; set; }
+        public HashSet<string> Users { get; set; }
 
         public async Task AddMessage(IMessage message)
         {
@@ -153,6 +155,7 @@ public class ChatBotService : IHostedService
             TokenCount += CountTokens(content);
             Messages.TryAdd(message.Id, content);
             MessageIsAi[message.Id] = message.Author.Id == _discord.CurrentUser.Id;
+            Users.Add(message.Author.Username);
         }
 
         public async Task ExploreMessageReference(MessageReference? reference, int maxToken = 100)
@@ -185,20 +188,47 @@ public class ChatBotService : IHostedService
             }
         }
 
+        public bool DoesAiHavePersonality()
+        {
+            var countAiMessageRatio = MessageIsAi.Count(m => m.Value) / (double) Messages.Count;
+            return countAiMessageRatio > 0.2;
+        }
+
+        // We need to impersonate the personality if the AI doesn't have one, vampire
+        public void ImpersonatePersonalityIfNeeded()
+        {
+            if (DoesAiHavePersonality()) return;
+            // randomly choose someone
+            var someone = Users.ElementAt(new Random().Next(Users.Count));
+            var newName = _discord.CurrentUser.Username;
+
+            foreach (var (key, value) in new SortedDictionary<ulong, string>(Messages))
+            {
+                if (value.Contains(someone))
+                {
+                    Messages[key] = value.Replace(someone, newName);
+                }
+
+                if (value.StartsWith(someone))
+                {
+                    MessageIsAi[key] = true;
+                }
+            }
+        }
+
         public ChatRequest ToChatRequest(Message[]? prompt = null)
         {
+            this.ImpersonatePersonalityIfNeeded();
             var array = new List<Message>();
             if (prompt != null) array.AddRange(prompt);
 
-            var sb = new StringBuilder();
             foreach (var (key, value) in Messages)
             {
+                // Multi shot personality
                 var escaped = value.Trim().Replace("\n", "\\n");
-                sb.AppendLine(escaped);
+                array.Add(new Message(escaped, MessageIsAi[key] ? MessageRole.Ai : MessageRole.Human));
             }
 
-            sb.Append($"{_discord.CurrentUser.Username}: ");
-            array.Add(new Message(sb.ToString(), MessageRole.Human));
             return new ChatRequest
             {
                 Messages = array
