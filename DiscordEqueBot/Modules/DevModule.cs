@@ -88,6 +88,15 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
         await FollowupAsync("Cache cleaned up.");
     }
 
+    private async Task CurrentChatModel()
+    {
+        var embed = new EmbedBuilder()
+            .WithTitle("Current Chat Model")
+            .WithDescription(_chatModelProvider.CurrentModel?.GetDisplayName() ?? "null")
+            .Build();
+        await FollowupAsync(embed: embed);
+    }
+
     [SlashCommand("dev", "Bot developer only.", runMode: RunMode.Async)]
     public async Task Dev(string command)
     {
@@ -115,6 +124,9 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
                     break;
                 case "chat-model-set":
                     await ChangeChatModel(args);
+                    break;
+                case "chat-model-current":
+                    await CurrentChatModel();
                     break;
                 case "pwd":
                     await FollowupAsync(Environment.CurrentDirectory);
