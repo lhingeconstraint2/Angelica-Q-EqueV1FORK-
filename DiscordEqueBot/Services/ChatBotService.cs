@@ -105,7 +105,8 @@ public class ChatBotService : IHostedService
         var maxWords = (uint) (CloudflareChatSettings.MaxTokenDefault * 0.8);
         var chatRequest = discordChat.ToChatRequest([
             //new Message(sampleConversation, MessageRole.System),
-            new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System)
+            new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System),
+            new Message($"{aiName}: I have 130 IQ, I'm smart enough to deduce like Sherlock", MessageRole.Ai)
         ]);
 
 
@@ -118,6 +119,10 @@ public class ChatBotService : IHostedService
             if (split.Length > 1)
                 response = split[1];
         }
+
+        var mentionSelf = "@" + _discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator;
+        if (response.StartsWith(mentionSelf))
+            response = response[mentionSelf.Length..];
 
         response = response.Replace(aiName + ": ", "");
         response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ",
@@ -237,7 +242,7 @@ public class ChatBotService : IHostedService
                 array.Add(new Message(escaped, MessageIsAi[key] ? MessageRole.Ai : MessageRole.Human));
             }
 
-            //array.Add(new Message("Start message with '" + _discord.CurrentUser.Username + ": '", MessageRole.System));
+            array.Add(new Message("Reply as " + _discord.CurrentUser.Username, MessageRole.System));
 
             return new ChatRequest
             {
