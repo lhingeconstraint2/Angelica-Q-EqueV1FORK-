@@ -6,7 +6,7 @@ public class AzureAIConfiguration
     public ModelConfig[] Models { get; set; }
     public string? SelectedModel { get; set; }
 
-    public static ModelConfig GetSelectedModel(ModelConfig[] Models, string? SelectedModel = null)
+    public static ModelConfig? GetSelectedModel(ModelConfig[] Models, string? SelectedModel = null)
     {
         foreach (var model in Models)
         {
@@ -17,10 +17,15 @@ public class AzureAIConfiguration
             }
         }
 
-        throw new Exception("Selected model not found");
+        return null;
     }
 
-    public ModelConfig GetSelectedModel()
+    public ModelConfig? GetSelectedModel()
+    {
+        return GetSelectedModel(Models, SelectedModel);
+    }
+
+    public ModelConfig? GetSelectedModel(string? SelectedModel)
     {
         return GetSelectedModel(Models, SelectedModel);
     }

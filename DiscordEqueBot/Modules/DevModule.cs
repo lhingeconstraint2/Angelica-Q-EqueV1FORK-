@@ -3,7 +3,9 @@ using System.Reflection;
 using CacheTower;
 using Discord;
 using Discord.Interactions;
+using DiscordEqueBot.AI.Chat;
 using DiscordEqueBot.Utility;
+using DiscordEqueBot.Utility.AzureAI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,17 +13,46 @@ namespace DiscordEqueBot.Modules;
 
 public class DevModule : InteractionModuleBase<SocketInteractionContext>
 {
+    private readonly IOptions<AzureAIConfiguration> _azureAIConfiguration;
     private readonly ICacheStack _cacheStack;
+    private readonly ChatModelProvider _chatModelProvider;
     private readonly ILogger<DevModule> _logger;
     private readonly EqueConfiguration _options;
 
-    public DevModule(IOptions<EqueConfiguration> options, ICacheStack cacheStack, ILogger<DevModule> logger)
+    public DevModule(IOptions<EqueConfiguration> options, ICacheStack cacheStack, ILogger<DevModule> logger,
+        ChatModelProvider chatModelProvider, IOptions<AzureAIConfiguration> azureAIConfiguration)
     {
         _options = options.Value;
         _cacheStack = cacheStack;
         _logger = logger;
+        _chatModelProvider = chatModelProvider;
+        _azureAIConfiguration = azureAIConfiguration;
     }
 
+    private async Task GetChatModelList()
+    {
+        var selectedModel = _azureAIConfiguration.Value.Models;
+        var chatModelList = selectedModel.Select(model => model.GetDisplayName()).ToList();
+
+        var embed = new EmbedBuilder()
+            .WithTitle("Chat Model List")
+            .WithDescription(string.Join("\n", chatModelList))
+            .Build();
+        await FollowupAsync(embed: embed);
+    }
+
+    public async Task ChangeChatModel(List<string> args)
+    {
+        var model = args.FirstOrDefault();
+        var chatModel = _chatModelProvider.ChangeChatModel(model);
+        if (chatModel == null)
+        {
+            await FollowupAsync("Invalid model.");
+            return;
+        }
+
+        await FollowupAsync($"Chat model changed to {_chatModelProvider.CurrentModel?.GetDisplayName() ?? "null"}");
+    }
 
     private static DateTime GetBuildDate()
     {
@@ -70,11 +101,21 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
+        List<string> args = command.Split(' ').ToList();
+        command = args[0];
+        args.RemoveAt(0);
+
         await DeferAsync();
         try
         {
             switch (command)
             {
+                case "chat-model-list":
+                    await GetChatModelList();
+                    break;
+                case "chat-model-set":
+                    await ChangeChatModel(args);
+                    break;
                 case "pwd":
                     await FollowupAsync(Environment.CurrentDirectory);
                     break;

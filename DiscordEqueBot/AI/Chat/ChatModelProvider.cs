@@ -9,6 +9,8 @@ namespace DiscordEqueBot.AI.Chat;
 
 public class ChatModelProvider
 {
+    public AzureAIConfiguration.ModelConfig? CurrentModel = null;
+
     public ChatModelProvider(IOptions<AzureAIConfiguration> configuration, ILogger<ChatModelProvider> logger)
     {
         Configuration = configuration;
@@ -23,19 +25,31 @@ public class ChatModelProvider
 
     public ChatModel GetChatModel()
     {
-        if (ChatModel is not null)
+        var res = ChangeChatModel(null);
+        if (res is null)
         {
-            return ChatModel;
+            throw new Exception("No chat model found");
         }
 
-        var selectedModel = Configuration.Value.GetSelectedModel();
+        return res;
+    }
+
+    public ChatModel? ChangeChatModel(string? model)
+    {
+        var selectedModel = Configuration.Value.GetSelectedModel(model);
+        if (selectedModel is null)
+        {
+            return null;
+        }
+
         var provider = new OpenAiProvider(
             selectedModel.Key,
             selectedModel.Endpoint
         );
         var llm = new OpenAiLatestSmartChatModel(provider);
-        ChatModel = llm;
+        this.ChatModel = llm;
         Logger.LogInformation("ChatModelProvider: Chat model is:" + selectedModel.GetDisplayName());
+        this.CurrentModel = selectedModel;
         return llm;
     }
 }
