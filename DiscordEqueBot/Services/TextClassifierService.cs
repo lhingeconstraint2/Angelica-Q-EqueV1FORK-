@@ -1,4 +1,5 @@
 using CacheTower;
+using DiscordEqueBot.AI.Chat;
 using DiscordEqueBot.Models;
 using DiscordEqueBot.Utility;
 using DiscordEqueBot.Utility.WorkerAI;
@@ -17,16 +18,17 @@ public class TextClassifierService : IHostedService
         "racy"
     ];
 
-    public TextClassifierService(ICacheStack cache, DatabaseContext databaseContext, ChatModel chatModel)
+    public TextClassifierService(ICacheStack cache, DatabaseContext databaseContext,
+        ChatModelProvider chatModelProvider)
     {
         Cache = cache;
         DatabaseContext = databaseContext;
-        ChatModel = chatModel;
+        ChatModelProvider = chatModelProvider;
     }
 
     private ICacheStack Cache { get; }
     private DatabaseContext DatabaseContext { get; }
-    private ChatModel ChatModel { get; }
+    private ChatModelProvider ChatModelProvider { get; }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -63,7 +65,7 @@ public class TextClassifierService : IHostedService
             new Message(prompt, MessageRole.Human)
         };
         var chatRequest = ChatRequest.ToChatRequest(messages.ToArray());
-        var response = await ChatModel.GenerateAsync(chatRequest, new CloudflareChatSettings()
+        var response = await ChatModelProvider.GetChatModel().GenerateAsync(chatRequest, new CloudflareChatSettings()
         {
             MaxTokens = 20
         });

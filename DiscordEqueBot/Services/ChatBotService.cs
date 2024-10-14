@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
+using DiscordEqueBot.AI.Chat;
 using DiscordEqueBot.Utility;
 using DiscordEqueBot.Utility.WorkerAI;
 using LangChain.Providers;
@@ -15,19 +16,20 @@ namespace DiscordEqueBot.Services;
 
 public class ChatBotService : IHostedService
 {
-    private ChatModel _chatModel;
+    private ChatModelProvider _chatModelProvider;
     private IConfiguration _config;
     private DiscordSocketClient _discord;
     private IEmbeddingModel _embeddingModel;
     private ILogger<ChatBotService> _logger;
     private IOptions<EqueConfiguration> _options;
 
-    public ChatBotService(ChatModel chatModel, ILogger<ChatBotService> logger, IEmbeddingModel embeddingModel,
+    public ChatBotService(ChatModelProvider chatModelProvider, ILogger<ChatBotService> logger,
+        IEmbeddingModel embeddingModel,
         DiscordSocketClient discord,
         IOptions<EqueConfiguration> options,
         IConfiguration config)
     {
-        _chatModel = chatModel;
+        _chatModelProvider = chatModelProvider;
         _logger = logger;
         _discord = discord;
         _embeddingModel = embeddingModel;
@@ -61,13 +63,11 @@ public class ChatBotService : IHostedService
                 // check if mentioned me or reply to my message
                 IMessage? messageReference = null;
                 if (message.Reference?.MessageId.IsSpecified == true)
-                {
                     messageReference = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
-                }
 
-                bool isMentionedMe =
+                var isMentionedMe =
                     message.MentionedUsers.FirstOrDefault(u => u.Id == _discord.CurrentUser.Id) != null;
-                bool isReplyToMe = messageReference?.Author.Id == _discord.CurrentUser.Id;
+                var isReplyToMe = messageReference?.Author.Id == _discord.CurrentUser.Id;
 
                 if (!isMentionedMe && !isReplyToMe)
                     return;
@@ -94,53 +94,43 @@ public class ChatBotService : IHostedService
 
         // Reference or History
         if (message.Reference?.MessageId.IsSpecified == true)
-        {
             await discordChat.ExploreMessageReference(message.Reference);
-        }
         else
-        {
             await discordChat.ExploreMessageHistory(message);
-        }
 
 
         var aiName = _discord.CurrentUser.Username;
         var sampleConversation = _options.Value.Template;
         sampleConversation = sampleConversation.Replace(_options.Value.TemplateCharName, aiName);
 
-        uint maxWords = (uint) (CloudflareChatSettings.MaxTokenDefault * 0.8);
+        var maxWords = (uint) (CloudflareChatSettings.MaxTokenDefault * 0.8);
         var chatRequest = discordChat.ToChatRequest([
-            new(sampleConversation, MessageRole.System),
+            new Message(sampleConversation, MessageRole.System),
             new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System)
         ]);
 
-        var chatResponse = await _chatModel.GenerateAsync(chatRequest);
+        var modelChat = _chatModelProvider.GetChatModel();
+        var chatResponse = await modelChat.GenerateAsync(chatRequest);
         var response = chatResponse.LastMessageContent;
         response = response.Replace(aiName + ": ", "");
         response = response.Replace(_discord.CurrentUser.Username + "#" + _discord.CurrentUser.Discriminator + ": ",
             "");
         // replace text that surrounded by * * or italic
         response = Regex.Replace(response, @"\*.*?\*", "");
-        if (string.IsNullOrWhiteSpace(response))
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(response)) return;
 
         IUserMessage messageRespond;
         if (message is SocketUserMessage userMessage)
-        {
             messageRespond = await userMessage.ReplyAsync(response);
-        }
         else
-        {
             messageRespond = await message.Channel.SendMessageAsync(response);
-        }
 
         await messageRespond.AddReactionAsync(new Emoji("👍"));
         await messageRespond.AddReactionAsync(new Emoji("👎"));
     }
 
 
-    class DiscordChat
+    private class DiscordChat
     {
         private DiscordSocketClient _discord;
 
@@ -198,12 +188,9 @@ public class ChatBotService : IHostedService
         public ChatRequest ToChatRequest(Message[]? prompt = null)
         {
             var array = new List<Message>();
-            if (prompt != null)
-            {
-                array.AddRange(prompt);
-            }
+            if (prompt != null) array.AddRange(prompt);
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             foreach (var (key, value) in Messages)
             {
                 var escaped = value.Trim().Replace("\n", "\\n");
@@ -211,17 +198,17 @@ public class ChatBotService : IHostedService
             }
 
             sb.Append($"{_discord.CurrentUser.Username}: ");
-            array.Add(new Message(sb.ToString(), MessageRole.Chat));
+            array.Add(new Message(sb.ToString(), MessageRole.Human));
             return new ChatRequest
             {
-                Messages = array,
+                Messages = array
             };
         }
 
 
-        public static async Task<String> GetAiFriendlyContent(IMessage message)
+        public static async Task<string> GetAiFriendlyContent(IMessage message)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             if (message.Reference?.MessageId.IsSpecified == true)
             {
                 var replyMessage = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
@@ -240,7 +227,7 @@ public class ChatBotService : IHostedService
         }
 
 
-        public static uint CountTokens(String message)
+        public static uint CountTokens(string message)
         {
             return (uint) message.Split(' ').Length; // naive tokenization
         }

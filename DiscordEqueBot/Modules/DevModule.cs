@@ -35,9 +35,7 @@ public class DevModule : InteractionModuleBase<SocketInteractionContext>
         value = value.Substring(index + buildVersionMetadataPrefix.Length);
         if (DateTime.TryParseExact(value, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None,
                 out var result))
-        {
             return result;
-        }
 
         return default;
     }

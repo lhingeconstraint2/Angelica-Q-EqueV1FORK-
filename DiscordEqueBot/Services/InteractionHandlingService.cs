@@ -60,10 +60,8 @@ public class InteractionHandlingService : IHostedService
         catch
         {
             if (interaction.Type == InteractionType.ApplicationCommand)
-            {
                 await interaction.GetOriginalResponseAsync()
                     .ContinueWith(msg => msg.Result.DeleteAsync());
-            }
         }
     }
 }

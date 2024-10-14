@@ -39,6 +39,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="AI\Embedding\"/>
+        <Folder Include="Configuration\"/>
         <Folder Include="Migrations\"/>
     </ItemGroup>
 

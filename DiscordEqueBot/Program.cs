@@ -1,8 +1,10 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using DiscordEqueBot.AI.Chat;
 using DiscordEqueBot.Services;
 using DiscordEqueBot.Utility;
+using DiscordEqueBot.Utility.AzureAI;
 using DiscordEqueBot.Utility.Cache;
 using DiscordEqueBot.Utility.WorkerAI;
 using LangChain.Extensions.DependencyInjection;
@@ -12,7 +14,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NetCore.AutoRegisterDi;
 
 var configDiscord = new DiscordSocketConfig
@@ -39,27 +40,22 @@ var possibleAppSettingLocations = new[]
     Path.Combine(currentDirectory, "..", "..", "..", "appsettings.json"),
     Path.Combine(currentDirectory, "..", "..", "..", "..", "appsettings.json"),
     Path.Combine(currentDirectory, "..", "..", "..", "..", "..", "appsettings.json"),
-    Path.Combine(currentDirectory, "..", "..", "..", "..", "..", "..", "appsettings.json"),
+    Path.Combine(currentDirectory, "..", "..", "..", "..", "..", "..", "appsettings.json")
 };
 
 builder.Configuration.SetBasePath(currentDirectory);
 builder.Configuration.AddEnvironmentVariables();
 
-bool foundAppSetting = false;
+var foundAppSetting = false;
 foreach (var possibleAppSettingLocation in possibleAppSettingLocations)
-{
     if (File.Exists(possibleAppSettingLocation))
     {
         foundAppSetting = true;
         builder.Configuration.AddJsonFile(possibleAppSettingLocation, false, true);
         break;
     }
-}
 
-if (!foundAppSetting)
-{
-    throw new FileNotFoundException("Could not find appsettings.json");
-}
+if (!foundAppSetting) throw new FileNotFoundException("Could not find appsettings.json");
 
 builder.Logging.AddConsole();
 
@@ -84,16 +80,12 @@ builder.Services.Configure<CloudflareConfiguration>(
         .SectionName)); // Add the CloudflareConfiguration to services
 builder.Services.Configure<EqueConfiguration>(
     builder.Configuration.GetSection(EqueConfiguration.SectionName)); // Add the EqueConfiguration to services
-
+builder.Services.Configure<AzureAIConfiguration>(
+    builder.Configuration.GetSection(AzureAIConfiguration.SectionName)); // Add the AzureAIConfiguration to services
 
 builder.Services.AddSingleton<CloudflareAiWorkerProvider>(); // Add the CloudflareAiWorkerProvider to services
 builder.Services.AddSingleton<IEmbeddingModel, EqueEmbeddingModel>(); // Add the EqueEmbeddingModel to services
-builder.Services.AddSingleton<ChatModel, CloudflareAiWorkerChatModel>(provider =>
-{
-    var cloudflareAiWorkerProvider = provider.GetRequiredService<CloudflareAiWorkerProvider>();
-    var cloudflareConfiguration = provider.GetRequiredService<IOptions<CloudflareConfiguration>>().Value;
-    return new CloudflareAiWorkerChatModel(cloudflareAiWorkerProvider, cloudflareConfiguration.ChatModelId);
-}); // Add the CloudflareAiWorkerChatModel to services
+builder.Services.AddSingleton<ChatModelProvider>(); // Add the ChatModelProvider to services
 builder.Services.AddSingleton<IEqueText2Image, CloudflareAiWorkerText2Image>(); // Add the Text2Image
 
 // Register any class that ends with "Service" as a service

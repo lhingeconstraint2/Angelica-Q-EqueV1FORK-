@@ -4,7 +4,6 @@ using Discord.Interactions;
 using DiscordEqueBot.Services;
 using DiscordEqueBot.Utility;
 using Humanizer;
-using LangChain.Providers;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordEqueBot.Modules;
@@ -13,17 +12,15 @@ public class ImageGenerateModule : InteractionModuleBase<SocketInteractionContex
 {
     private readonly ILogger<ImageGenerateModule> _logger;
 
-    public ImageGenerateModule(IEqueText2Image equeText2Image, ChatModel chatModel,
+    public ImageGenerateModule(IEqueText2Image equeText2Image,
         TextClassifierService textClassifierService, ILogger<ImageGenerateModule> logger)
     {
         EqueText2Image = equeText2Image;
-        ChatModel = chatModel;
         TextClassifierService = textClassifierService;
         _logger = logger;
     }
 
     private IEqueText2Image EqueText2Image { get; }
-    private ChatModel ChatModel { get; }
     private TextClassifierService TextClassifierService { get; }
 
 
