@@ -44,7 +44,8 @@ public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
     public bool IsMessage { get; }
 
 
-    public override async Task<ChatResponse> GenerateAsync(ChatRequest chatRequest, ChatSettings? settings = null,
+    public override async IAsyncEnumerable<ChatResponse> GenerateAsync(ChatRequest chatRequest,
+        ChatSettings? settings = null,
         CancellationToken cancellationToken = new CancellationToken())
     {
         var url = CloudflareAiWorkerProvider.GetEndpointChat(Id);
@@ -89,7 +90,7 @@ public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
         }
 
 
-        return new ChatResponse
+        yield return new ChatResponse
         {
             Messages = chatRequest.Messages
                 .Append(new LangChain.Providers.Message(chatResponse.Result.Response, MessageRole.Ai)).ToArray(),
@@ -98,7 +99,7 @@ public class CloudflareAiWorkerChatModel : ChatModel, IPaidLargeLanguageModel,
     }
 
 
-    public double CalculatePriceInUsd(int inputTokens, int outputTokens)
+    public double? TryCalculatePriceInUsd(int inputTokens, int outputTokens)
     {
         return (double) (PricingPerInputTokenInUsd * inputTokens + PricingPerOutputTokenInUsd * outputTokens);
     }

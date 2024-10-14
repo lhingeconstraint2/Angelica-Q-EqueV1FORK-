@@ -34,8 +34,6 @@ public class ChatBotService : IHostedService
         _config = config;
         _options = options;
         CloudflareChatSettings.MaxTokenDefault = _options.Value.MaxResponseLength;
-        chatModel.PromptSent += (o, s) => _logger.LogInformation("Prompt: {Prompt}", s);
-        chatModel.CompletedResponseGenerated += (o, s) => _logger.LogInformation("Response: {Response}", s);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
