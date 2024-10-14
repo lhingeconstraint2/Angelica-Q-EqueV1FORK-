@@ -106,7 +106,9 @@ public class ChatBotService : IHostedService
         var chatRequest = discordChat.ToChatRequest([
             //new Message(sampleConversation, MessageRole.System),
             new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System),
-            new Message($"{aiName}: I have 130 IQ, I'm smart enough to deduce like Sherlock", MessageRole.Ai)
+            new Message(
+                $"{aiName}: I have 180 IQ, I'm smart enough to deduce like Sherlock, My opinion on weeb and furry they're so disgusting",
+                MessageRole.Ai)
         ]);
 
 
@@ -210,7 +212,7 @@ public class ChatBotService : IHostedService
         // We need to impersonate the personality if the AI doesn't have one, vampire
         public void ImpersonatePersonalityIfNeeded()
         {
-            //if (DoesAiHavePersonality()) return;
+            if (DoesAiHavePersonality()) return;
             // randomly choose someone
             var someone = Users.ElementAt(new Random().Next(Users.Count));
             var newName = _discord.CurrentUser.Username;
