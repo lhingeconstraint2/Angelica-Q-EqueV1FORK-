@@ -204,7 +204,7 @@ public class ChatBotService : IHostedService
         // We need to impersonate the personality if the AI doesn't have one, vampire
         public void ImpersonatePersonalityIfNeeded()
         {
-            if (DoesAiHavePersonality()) return;
+            //if (DoesAiHavePersonality()) return;
             // randomly choose someone
             var someone = Users.ElementAt(new Random().Next(Users.Count));
             var newName = _discord.CurrentUser.Username;
@@ -236,7 +236,7 @@ public class ChatBotService : IHostedService
                 array.Add(new Message(escaped, MessageIsAi[key] ? MessageRole.Ai : MessageRole.Human));
             }
 
-            array.Add(new Message("Start message with '" + _discord.CurrentUser.Username + ": '", MessageRole.System));
+            //array.Add(new Message("Start message with '" + _discord.CurrentUser.Username + ": '", MessageRole.System));
 
             return new ChatRequest
             {
