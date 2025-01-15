@@ -107,7 +107,7 @@ public class ChatBotService : IHostedService
             //new Message(sampleConversation, MessageRole.System),
             new Message($"Keep OOC out of the chat, max words limit up to {maxWords} words.", MessageRole.System),
             new Message(
-                $"{aiName}: I have 180 IQ, I'm smart enough to deduce like Sherlock, My opinion on weeb and furry they're so disgusting",
+                $"{aiName}: hallo",
                 MessageRole.Ai)
         ]);
 
